@@ -1,25 +1,31 @@
 function analyze() {
-  const code = document.getElementById("code").value.toUpperCase();
+  const code = document.getElementById("code").value.trim();
 
-  // Try backend first
-  fetch("http://localhost:3000/analyze", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      code: code,
-      car: document.getElementById("car").value
+  // Handle empty input FIRST
+  if (!code) {
+    alert("Please enter an OBD code.");
+    return;
+  }
+
+  // Show loading state
+  const issue = document.getElementById("issue");
+  const explanation = document.getElementById("explanation");
+  const result = document.getElementById("result");
+
+  issue.textContent = "Analyzing...";
+  explanation.textContent = "Checking vehicle data...";
+  result.classList.remove("hidden");
+
+  // Call backend
+  fetch(`http://localhost:3000/api/code/${code}`)
+    .then(res => res.json())
+    .then(data => {
+      displayResults(data);
     })
-  })
-  .then(res => res.json())
-  .then(data => {
-    displayResults(data);
-  })
-  .catch(err => {
-    console.log("Backend not connected, using mock data");
-    useMockData(code); // fallback
-  });
+    .catch(err => {
+      console.error("Backend failed, using mock data");
+      useMockData(code);
+    });
 }
 
 function useMockData(code) {
@@ -65,23 +71,39 @@ function displayResults(data) {
   const steps = document.getElementById("steps");
   const shops = document.getElementById("shops");
 
+  // Clear old data
   steps.innerHTML = "";
   shops.innerHTML = "";
 
-  issue.textContent = data.issue;
-  explanation.textContent = data.explanation;
+  // Handle errors from backend
+  if (data.error) {
+    issue.textContent = data.error;
+    explanation.textContent = data.message;
+    result.classList.remove("hidden");
+    return;
+  }
 
-  data.steps.forEach(step => {
+  // Map backend → frontend
+  issue.textContent = `${data.code} - ${data.category}`;
+  explanation.textContent = data.summary;
+
+  // Generate simple "next steps"
+  const defaultSteps = [
+    "Inspect related components",
+    "Check for sensor issues",
+    "Consult a professional mechanic"
+  ];
+
+  defaultSteps.forEach(step => {
     let li = document.createElement("li");
     li.textContent = step;
     steps.appendChild(li);
   });
 
-  data.shops.forEach(shop => {
-    let li = document.createElement("li");
-    li.textContent = shop;
-    shops.appendChild(li);
-  });
+  // Recommended shop
+  let li = document.createElement("li");
+  li.textContent = data.recommendedShop;
+  shops.appendChild(li);
 
   result.classList.remove("hidden");
 }
