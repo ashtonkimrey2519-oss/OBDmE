@@ -426,12 +426,12 @@
 </main>
 
 <footer class="status-bar">
-  <span class="status-text"><span class="status-dot"></span>API connected · localhost:3000</span>
+  <span class="status-text"><span class="status-dot"></span>API connected </span>
   <span class="status-text" id="codeCount">—</span>
 </footer>
 
 <script>
-  fetch('http://localhost:3000')
+  fetch('/health')
     .then(r => r.json())
     .then(d => {
       document.getElementById('codeCount').textContent = `${d.totalCodes.toLocaleString()} codes loaded`;
@@ -468,7 +468,7 @@
     setLoading(true);
     hideResult();
 
-    fetch(`http://localhost:3000/api/code/${encodeURIComponent(code)}`)
+    fetch(`/api/code/${encodeURIComponent(code)}`)
       .then(res => res.json())
       .then(data => {
         setLoading(false);
