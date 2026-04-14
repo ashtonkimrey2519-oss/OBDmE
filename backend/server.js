@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 // ============================================================
 // server.js — OBD Code Lookup Backend (Node.js + Express)
 // ============================================================
@@ -203,6 +205,10 @@ app.get("/api/categories", (req, res) => {
     total: categories.length,
     categories,
   });
+});
+
+app.get('/api/config', (req, res) => {
+  res.json({ mapsApiKey: process.env.MAPS_API_KEY });
 });
 
 /**

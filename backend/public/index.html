@@ -311,6 +311,24 @@
       flex-shrink: 0;
     }
 
+    .map-section {
+      border-top: 1px solid var(--border);
+      padding: 20px;
+      display: none;
+    }
+
+    .map-section.visible {
+      display: block;
+    }
+
+    #map-frame {
+      width: 100%;
+      height: 220px;
+      border: none;
+      border-radius: 8px;
+      filter: grayscale(30%) contrast(1.1);
+    }
+
     .status-bar {
       width: 100%;
       max-width: 480px;
@@ -422,23 +440,35 @@
         <ul id="shops"></ul>
       </div>
     </div>
+    <div class="map-section" id="mapSection">
+      <div class="section-label">Shop Location</div>
+      <iframe id="map-frame" allowfullscreen loading="lazy"></iframe>
+    </div>
   </div>
 </main>
 
 <footer class="status-bar">
-  <span class="status-text"><span class="status-dot"></span>API connected</span>
-  <span class="status-text" id="codeCount"> Hosted by Render</span>
+  <span class="status-text"><span class="status-dot"></span>API connected · localhost:3000</span>
+  <span class="status-text" id="codeCount">—</span>
 </footer>
 
 <script>
-  fetch('/health')
-  .then(() => {
-    document.getElementById('codeCount').textContent = 'Hosted on Render';
-  })
-  .catch(() => {
-    document.getElementById('codeCount').textContent = 'Backend Offline';
-    document.querySelector('.status-dot').style.background = '#ff4d00';
-  });
+  let MAPS_API_KEY = '';
+
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(d => {
+      MAPS_API_KEY = d.mapsApiKey;
+      return fetch('/health');
+    })
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('codeCount').textContent = `${d.totalCodes.toLocaleString()} codes loaded`;
+    })
+    .catch(() => {
+      document.getElementById('codeCount').textContent = 'backend offline';
+      document.querySelector('.status-dot').style.background = '#ff4d00';
+    });
 
   document.getElementById('code').addEventListener('keydown', e => {
     if (e.key === 'Enter') analyze();
@@ -491,15 +521,25 @@
     requestAnimationFrame(() => result.classList.add('visible'));
   }
 
+  function loadMap(shopName) {
+    const mapSection = document.getElementById('mapSection');
+    const mapFrame = document.getElementById('map-frame');
+    const query = encodeURIComponent(shopName + ' auto shop');
+    mapFrame.src = `https://www.google.com/maps/embed/v1/search?key=${MAPS_API_KEY}&q=${query}`;
+    mapSection.classList.add('visible');
+  }
+
   function displayResults(data, rawCode) {
     const badge = document.getElementById('codeBadge');
     const issue = document.getElementById('issue');
     const explanation = document.getElementById('explanation');
     const steps = document.getElementById('steps');
     const shops = document.getElementById('shops');
+    const mapSection = document.getElementById('mapSection');
 
     steps.innerHTML = '';
     shops.innerHTML = '';
+    mapSection.classList.remove('visible');
 
     if (data.error) {
       badge.textContent = rawCode;
@@ -525,6 +565,7 @@
     li.textContent = data.recommendedShop;
     shops.appendChild(li);
 
+    loadMap(data.recommendedShop);
     showResult();
   }
 
